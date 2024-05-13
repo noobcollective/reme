@@ -92,11 +92,11 @@ func WriteEvent(event *models.Event) (*models.Events, *os.File, error) {
 
 // Continuously watches the configured file and
 // notifies listeners for file writes.
-func WatchFile(fileChanged chan fsnotify.Event, fileError chan error, fileDone chan bool) {
+func WatchFile(fileChanged chan fsnotify.Event, chanError chan error, fileDone chan bool) {
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		fileError <- err
+		chanError <- err
 	}
 
 	defer watcher.Close()
@@ -111,14 +111,14 @@ func WatchFile(fileChanged chan fsnotify.Event, fileError chan error, fileDone c
 					}
 
 				case err = <-watcher.Errors:
-					fileError <- err
+					chanError <- err
 			}
 		}
 	}()
 
 	// Add the file to watcher.
 	if err := watcher.Add("events.json"); err != nil {
-		fileError <- err
+		chanError <- err
 		watcher.Close()
 	}
 

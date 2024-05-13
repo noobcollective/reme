@@ -57,12 +57,12 @@ func StartDaemon() {
 func controlDaemon(ctx context.Context, out io.Writer) (error) {
 
 	fileDone := make(chan bool)
-	fileError := make(chan error)
+	chanError := make(chan error)
 	fileChange := make(chan fsnotify.Event)
 	noEvents := make(chan bool)
 
-	go WatchFile(fileChange, fileError, fileDone)
-	go WatchForNewEvents(fileChange, noEvents, fileError)
+	go WatchFile(fileChange, chanError, fileDone)
+	go WatchForNewEvents(fileChange, noEvents, chanError)
 
 	for {
 		select {
@@ -71,9 +71,8 @@ func controlDaemon(ctx context.Context, out io.Writer) (error) {
 				log.Println("Done, exiting now.")
 				os.Exit(1)
 
-			case err := <-fileError:
-				log.Printf("File error.... PANIC %v", err)
-				os.Exit(1)
+			case err := <-chanError:
+				log.Fatal("Channel faile with an error: ", err)
 
 			case <-time.Tick(10 * time.Second):
 				log.Println("Still running...")
