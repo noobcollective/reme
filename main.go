@@ -7,7 +7,7 @@ import (
 
 	"reme/controllers"
 
-	"github.com/TheCreeper/go-notify"
+	"github.com/gen2brain/beeep"
 )
 
 func main() {
@@ -20,9 +20,7 @@ func main() {
 		return
 	}
 
-	ntfs := notify.NewNotification("Test from after return.", "Nothing special going on here.")
-
-	if _, err := ntfs.Show(); err != nil {
+	if err := beeep.Notify("Test from after return.", "Nothing special going on here.", ""); err != nil {
 		fmt.Fprintf(os.Stderr, "Could not show notification: %v\n", err)
 		return
 	}
