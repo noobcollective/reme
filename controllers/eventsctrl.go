@@ -15,7 +15,10 @@ import (
 func WatchForNewEvents(fileChange chan fsnotify.Event, noEvents chan bool, fileError chan error) {
 
 	// Get todays events.
-	data, _ := ReadEvents()
+	data, _, err := ReadEvents()
+	if err != nil {
+		log.Fatal("Error reading events: ", err)
+	}
 
 	if len(data.Events) == 0 {
 		log.Println("No events for today.")
@@ -52,7 +55,10 @@ func WatchForNewEvents(fileChange chan fsnotify.Event, noEvents chan bool, fileE
 
 // Update data with new events.
 func updateData(data *models.Events) {
-	newData, _ := ReadEvents()
+	newData, _, err := ReadEvents()
+	if err != nil {
+		log.Fatal("Error reading events: ", err)
+	}
 
 	if ( (len(data.Events) == len(newData.Events)) ||
 			(len(data.Events) == 0 || len(newData.Events) == 0) ) {

@@ -3,12 +3,11 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"time"
 
-	"reme/common"
 	"reme/models"
 
 	"github.com/fsnotify/fsnotify"
@@ -19,29 +18,34 @@ import (
 const filename = "events.json"
 
 // Reads all events from configured file.
-func ReadEvents() (models.Events, *os.File) {
+func ReadEvents() (models.Events, *os.File, error) {
 
 	var data models.Events
 	
 	file, err := os.OpenFile(filename, os.O_RDWR, 0644)
-	common.CheckErr(err)
+	if err != nil {
+		return data, nil, err
+	}
 	log.Printf("Successfully opened file %v.\n", filename)
 
-	byteValue, err := ioutil.ReadAll(file)
+	byteValue, err := io.ReadAll(file)
 	if err != nil {
 		panic(fmt.Sprint("File error: %v", err))
 	}
 
 	json.Unmarshal(byteValue, &data)
 
-	return data, file
+	return data, file, nil
 }
 
 
 // Filter todays events from the whole events.
 // Returns pointer to events.
-func GetTodaysEvents() (*models.Events) {
-	data, _ := ReadEvents()
+func GetTodaysEvents() (*models.Events, error) {
+	data, _, err := ReadEvents()
+	if err != nil {
+		return nil, err
+	}
 	today := time.Now()
 
 	for index, event := range data.Events {
@@ -60,31 +64,30 @@ func GetTodaysEvents() (*models.Events) {
 		data.Events = slices.Delete(data.Events, index, index + 1)
 	}
 
-	return &data
+	return &data, nil
 }
 
 
 // Writes an event to configured file.
-func WriteEvent(event *models.Event) (*models.Events, *os.File) {
-
-	data, file := ReadEvents()
+func WriteEvent(event *models.Event) (*models.Events, *os.File, error) {
+	data, file, err := ReadEvents()
+	if err != nil {
+		return nil, nil, err
+	}
+	
 
 	defer file.Close()
-
 	data.Events = append(data.Events, *event)
-
 	newData, err := json.MarshalIndent(data, "", "	")
-
 	if err != nil {
-		panic(fmt.Sprintf("JSON error: %v", err))
+		return nil, nil, err
 	}
 
-	_, writeErr := file.WriteAt(newData, 0)
-	if writeErr != nil {
-		panic(fmt.Sprintf("File error: %v", err))
+	if _, err := file.WriteAt(newData, 0); err != nil {
+		return nil, nil, err
 	}
 
-	return &data, file
+	return &data, file, nil
 }
 
 // Continuously watches the configured file and

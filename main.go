@@ -1,10 +1,10 @@
 package main
 
 import (
+	"os"
 	"fmt"
 	"flag"
 
-	"reme/common"
 	"reme/controllers"
 
 	"github.com/TheCreeper/go-notify"
@@ -23,16 +23,23 @@ func main() {
 	ntfs := notify.NewNotification("Test from after return.", "Nothing special going on here.")
 
 	if _, err := ntfs.Show(); err != nil {
-		panic(err)
+		fmt.Fprintf(os.Stderr, "Could not show notification: %v\n", err)
+		return
 	}
 
 	newEvent, err := controllers.GetNewEvent()
-	common.CheckErr(err)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Could not get new event: %v\n", err)
+		return
+	}
 
-	eventData, file := controllers.WriteEvent(&newEvent)
+	eventData, file, err := controllers.WriteEvent(&newEvent)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error while writing new event: %v\n", err)
+		return
+	}
 
 	defer file.Close()
-	
 	for _, event := range eventData.Events {
 		fmt.Println(event.Subject)
 	}
