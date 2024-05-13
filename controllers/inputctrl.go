@@ -6,18 +6,18 @@ import (
 	"time"
 	"bufio"
 
-	"reme/models"
+	"reme/entities"
 	"github.com/rs/xid"
 )
 
-func GetNewEvent() (models.Event, error) {
+func GetNewEvent() (entities.Event, error) {
 
 	var chosen string
 	var subject string
 	now := time.Now()
 	_, offset := now.Zone()
 
-	allowed := map[string] func(*string, int) (models.Event, error) {
+	allowed := map[string] func(*string, int) (entities.Event, error) {
 		"t": setTimerData,
 		"p": setPointData,
 	}
@@ -40,7 +40,7 @@ func GetNewEvent() (models.Event, error) {
 }
 
 
-func setTimerData(subject *string, offset int) (models.Event, error) {
+func setTimerData(subject *string, offset int) (entities.Event, error) {
 
 	var hours uint
 	var minutes uint
@@ -54,7 +54,7 @@ func setTimerData(subject *string, offset int) (models.Event, error) {
 	timeIn := time.Now().Add(time.Hour * time.Duration(hours) + time.Minute * time.Duration(minutes))
 	jsonTime := timeIn.In(time.Local).Format(time.RFC3339)
 
-	return models.Event{
+	return entities.Event{
 		ID: xid.New().String(),
 		Time: jsonTime,
 		Subject: *subject,
@@ -62,7 +62,7 @@ func setTimerData(subject *string, offset int) (models.Event, error) {
 	}, nil
 }
 
-func setPointData(subject *string, offset int) (models.Event, error) {
+func setPointData(subject *string, offset int) (entities.Event, error) {
 
 	var on string
 	var at string
@@ -78,12 +78,12 @@ func setPointData(subject *string, offset int) (models.Event, error) {
 	//seconds := (hours / 3600) + (minutes / 60)
 	timeIn, err := time.Parse("2006-01-02 15:04:05", timestring)
 	if err != nil {
-		return models.Event{}, err
+		return entities.Event{}, err
 	}
 
 	jsonTime := timeIn.In(time.Local).Format(time.RFC3339)
 
-	return models.Event {
+	return entities.Event {
 		ID: xid.New().String(),
 		Time: jsonTime,
 		Subject: *subject,

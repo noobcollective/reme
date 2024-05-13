@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"reme/models"
+	"reme/entities"
 
 	"github.com/fsnotify/fsnotify"
 	"golang.org/x/exp/slices"
@@ -18,9 +18,8 @@ import (
 const filename = "events.json"
 
 // Reads all events from configured file.
-func ReadEvents() (models.Events, *os.File, error) {
-
-	var data models.Events
+func ReadEvents() (entities.Events, *os.File, error) {
+	var data entities.Events
 	
 	file, err := os.OpenFile(filename, os.O_RDWR, 0644)
 	if err != nil {
@@ -30,7 +29,7 @@ func ReadEvents() (models.Events, *os.File, error) {
 
 	byteValue, err := io.ReadAll(file)
 	if err != nil {
-		panic(fmt.Sprint("File error: %v", err))
+		return data, nil, err
 	}
 
 	json.Unmarshal(byteValue, &data)
@@ -41,7 +40,7 @@ func ReadEvents() (models.Events, *os.File, error) {
 
 // Filter todays events from the whole events.
 // Returns pointer to events.
-func GetTodaysEvents() (*models.Events, error) {
+func GetTodaysEvents() (*entities.Events, error) {
 	data, _, err := ReadEvents()
 	if err != nil {
 		return nil, err
@@ -52,7 +51,7 @@ func GetTodaysEvents() (*models.Events, error) {
 		eventTime, err := time.Parse(time.RFC3339, event.Time)
 
 		if err != nil {
-			panic(fmt.Sprintf("Time error: %v", err))
+			return nil, err
 		}
 
 		if (eventTime.Day() == today.Day() &&
@@ -69,7 +68,7 @@ func GetTodaysEvents() (*models.Events, error) {
 
 
 // Writes an event to configured file.
-func WriteEvent(event *models.Event) (*models.Events, *os.File, error) {
+func WriteEvent(event *entities.Event) (*entities.Events, *os.File, error) {
 	data, file, err := ReadEvents()
 	if err != nil {
 		return nil, nil, err

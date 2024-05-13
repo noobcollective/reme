@@ -1,4 +1,4 @@
-package models
+package entities
 
 type Events struct {
 	Events []Event `json:"events"`

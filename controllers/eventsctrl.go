@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"reme/models"
+	"reme/entities"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/gen2brain/beeep"
@@ -53,7 +53,7 @@ func WatchForNewEvents(fileChange chan fsnotify.Event, noEvents chan bool, chanE
 
 
 // Update data with new events.
-func updateData(data *models.Events, chanError chan error) {
+func updateData(data *entities.Events, chanError chan error) {
 	newData, _, err := ReadEvents()
 	if err != nil {
 		chanError <- err
@@ -69,7 +69,7 @@ func updateData(data *models.Events, chanError chan error) {
 
 // Checks if the diff from now to the event time is between +/- 5 seconds.
 // If so, notify listeners and mark event as passed.
-func checkIfNow(event *models.Event, chanError chan error) {
+func checkIfNow(event *entities.Event, chanError chan error) {
 	if ( event.AlreadyDispatched ) {
 		return
 	}
