@@ -21,7 +21,6 @@ func main() {
 		return
 	}
 
-	fmt.Println(*filePath)
 	controllers.FilePath = *filePath
 
 	if *asDaemon {
