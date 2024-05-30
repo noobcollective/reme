@@ -11,11 +11,10 @@ import (
 	"github.com/gen2brain/beeep"
 )
 
+
 // Listens to channel, if there were new events added to events file.
 func WatchForNewEvents(fileChange chan fsnotify.Event, noEvents chan bool, chanError chan error) {
-
-	// Get todays events.
-	data, _, err := ReadEvents()
+	data, err := ReadEvents()
 	if err != nil {
 		chanError <- err
 	}
@@ -24,20 +23,17 @@ func WatchForNewEvents(fileChange chan fsnotify.Event, noEvents chan bool, chanE
 		noEvents <- true
 	}
 
-	log.Printf("Todays events are: %v", data.Events)
-
 	// Listen to channel.
 	for {
 		select {
 			case event := <-fileChange:
 				switch event.Op {
 					case fsnotify.Write:
-						log.Println("New write to file.")
 						updateData(&data, chanError)
-						log.Printf("New events are: %v\n", data)
+						log.Printf("New events are: %v\n", data.Events)
 
 					default:
-						log.Printf("Other operations: %v", event)
+						log.Printf("Other Operation: %v\n", event.Op)
 				}
 
 			case <-noEvents:
@@ -52,9 +48,9 @@ func WatchForNewEvents(fileChange chan fsnotify.Event, noEvents chan bool, chanE
 }
 
 
-// Update data with new events.
+// Updates data with new events.
 func updateData(data *entities.Events, chanError chan error) {
-	newData, _, err := ReadEvents()
+	newData, err := ReadEvents()
 	if err != nil {
 		chanError <- err
 	}
@@ -66,6 +62,7 @@ func updateData(data *entities.Events, chanError chan error) {
 
 	data.Events = append(data.Events, newData.Events[len(newData.Events) - 1])
 }
+
 
 // Checks if the diff from now to the event time is between +/- 5 seconds.
 // If so, notify listeners and mark event as passed.
@@ -85,7 +82,11 @@ func checkIfNow(event *entities.Event, chanError chan error) {
 	}
 
 	event.AlreadyDispatched = true
-	if err := beeep.Notify( "REME Notification", fmt.Sprintf("Event %s passed.", event.Subject), "" ); err != nil {
+	if err := beeep.Notify( "REME Notification", fmt.Sprintf("Reme: %s", event.Subject), "" ); err != nil {
+		chanError <- err
+	}
+	
+	if _ , err := WriteEvent(event); err != nil {
 		chanError <- err
 	}
 }

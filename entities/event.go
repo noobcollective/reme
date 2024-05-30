@@ -1,8 +1,10 @@
 package entities
 
+
 type Events struct {
 	Events []Event `json:"events"`
 }
+
 
 type Event struct {
 	ID string `json:"id"`

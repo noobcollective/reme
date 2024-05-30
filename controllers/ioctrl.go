@@ -2,9 +2,6 @@ package controllers
 
 import (
 	"encoding/json"
-	"fmt"
-	"io"
-	"log"
 	"os"
 	"time"
 
@@ -14,34 +11,29 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-// FIXME: Possibility to configure where file is.
-const filename = "events.json"
+var FilePath string
+
 
 // Reads all events from configured file.
-func ReadEvents() (entities.Events, *os.File, error) {
+func ReadEvents() (entities.Events, error) {
 	var data entities.Events
-	
-	file, err := os.OpenFile(filename, os.O_RDWR, 0644)
-	if err != nil {
-		return data, nil, err
-	}
-	log.Printf("Successfully opened file %v.\n", filename)
 
-	byteValue, err := io.ReadAll(file)
+	fileContent, err := os.ReadFile(FilePath)
 	if err != nil {
-		return data, nil, err
+		return data, err
 	}
 
-	json.Unmarshal(byteValue, &data)
-
-	return data, file, nil
+	if err := json.Unmarshal(fileContent, &data); err != nil {
+		return data, nil
+	}
+	return data, nil
 }
 
 
 // Filter todays events from the whole events.
 // Returns pointer to events.
 func GetTodaysEvents() (*entities.Events, error) {
-	data, _, err := ReadEvents()
+	data, err := ReadEvents()
 	if err != nil {
 		return nil, err
 	}
@@ -55,9 +47,9 @@ func GetTodaysEvents() (*entities.Events, error) {
 		}
 
 		if (eventTime.Day() == today.Day() &&
-			eventTime.Month() == today.Month() &&
-			eventTime.Year() == today.Year()) {
-				continue
+		eventTime.Month() == today.Month() &&
+		eventTime.Year() == today.Year()) {
+			continue
 		}
 
 		data.Events = slices.Delete(data.Events, index, index + 1)
@@ -68,55 +60,64 @@ func GetTodaysEvents() (*entities.Events, error) {
 
 
 // Writes an event to configured file.
-func WriteEvent(event *entities.Event) (*entities.Events, *os.File, error) {
-	data, file, err := ReadEvents()
+func WriteEvent(currEvent *entities.Event) (*entities.Events, error) {
+	data, err := ReadEvents()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	
 
-	defer file.Close()
-	data.Events = append(data.Events, *event)
+	var newEvent bool = false
+	for idx, event := range data.Events {
+		if event.ID != currEvent.ID {
+			continue
+		}
+
+		data.Events[idx] = *currEvent
+		newEvent = true
+	} 
+
+	if !newEvent {
+		data.Events = append(data.Events, *currEvent)
+	}
+
 	newData, err := json.MarshalIndent(data, "", "	")
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	if _, err := file.WriteAt(newData, 0); err != nil {
-		return nil, nil, err
+	if err := os.WriteFile(FilePath, newData, 0644); err != nil {
+		return nil, err
 	}
 
-	return &data, file, nil
+	return &data, nil
 }
+
 
 // Continuously watches the configured file and
 // notifies listeners for file writes.
 func WatchFile(fileChanged chan fsnotify.Event, chanError chan error, fileDone chan bool) {
-
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		chanError <- err
 	}
 
-	defer watcher.Close()
-
 	go func() {
 		for {
 			select {
-				case event := <-watcher.Events:
-					fileChanged <- event
-					if event.Op != fsnotify.Write {
-						watcher.Add(event.Name)
-					}
+			case event := <-watcher.Events:
+				if event.Op != fsnotify.Write {
+					watcher.Add(event.Name)
+				}
+				fileChanged <- event
 
-				case err = <-watcher.Errors:
-					chanError <- err
+			case err = <-watcher.Errors:
+				chanError <- err
 			}
 		}
 	}()
 
 	// Add the file to watcher.
-	if err := watcher.Add("events.json"); err != nil {
+	if err := watcher.Add(FilePath); err != nil {
 		chanError <- err
 		watcher.Close()
 	}

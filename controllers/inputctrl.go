@@ -10,8 +10,9 @@ import (
 	"github.com/rs/xid"
 )
 
-func GetNewEvent() (entities.Event, error) {
 
+// Prompts for info and creates a new event.
+func GetNewEvent() (entities.Event, error) {
 	var chosen string
 	var subject string
 	now := time.Now()
@@ -40,8 +41,8 @@ func GetNewEvent() (entities.Event, error) {
 }
 
 
+// Sets the event with relative time given.
 func setTimerData(subject *string, offset int) (entities.Event, error) {
-
 	var hours uint
 	var minutes uint
 
@@ -62,8 +63,9 @@ func setTimerData(subject *string, offset int) (entities.Event, error) {
 	}, nil
 }
 
-func setPointData(subject *string, offset int) (entities.Event, error) {
 
+// Sets the event with fixed date given.
+func setPointData(subject *string, offset int) (entities.Event, error) {
 	var on string
 	var at string
 
