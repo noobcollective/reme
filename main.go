@@ -8,6 +8,7 @@ import (
 
 	"reme/controllers"
 	"reme/entities"
+	"reme/views"
 )
 
 var filePath = flag.String("ef", "", "Custom path to events file.")
@@ -28,15 +29,8 @@ func main() {
 		return
 	}
 
-	newEvent, err := controllers.GetNewEvent()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Could not get new event: %v\n", err)
-		return
-	}
-
-	if _, err := controllers.WriteEvent(&newEvent); err != nil {
-		fmt.Fprintf(os.Stderr, "Error while writing new event: %v\n", err)
-		return
+	if err := views.RunForms(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error creating events: <%v>\n", err)
 	}
 }
 
