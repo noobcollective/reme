@@ -1,4 +1,4 @@
-name: Create Client Release
+name: Release version
 permissions:
   contents: write
 on:
