@@ -1,15 +1,16 @@
 package controllers
 
 import (
-	"os"
-	"fmt"
-	"time"
 	"bufio"
+	"fmt"
+	"os"
+	"time"
 
 	"reme/entities"
+	"reme/tools"
+
 	"github.com/rs/xid"
 )
-
 
 // Prompts for info and creates a new event.
 func GetNewEvent() (entities.Event, error) {
@@ -43,8 +44,8 @@ func GetNewEvent() (entities.Event, error) {
 
 // Sets the event with relative time given.
 func setTimerData(subject *string, offset int) (entities.Event, error) {
-	var hours uint
-	var minutes uint
+	var hours uint64
+	var minutes uint64
 
 	fmt.Println("Hours: ")
 	fmt.Scanf("%d", &hours)
@@ -52,9 +53,7 @@ func setTimerData(subject *string, offset int) (entities.Event, error) {
 	fmt.Println("Minutes: ")
 	fmt.Scanf("%d", &minutes)
 
-	timeIn := time.Now().Add(time.Hour * time.Duration(hours) + time.Minute * time.Duration(minutes))
-	jsonTime := timeIn.In(time.Local).Format(time.RFC3339)
-
+	jsonTime := tools.GetRelativeJsonTime(hours, minutes)
 	return entities.Event{
 		ID: xid.New().String(),
 		Time: jsonTime,
@@ -75,15 +74,10 @@ func setPointData(subject *string, offset int) (entities.Event, error) {
 	fmt.Println("At: ")
 	fmt.Scan(&at)
 
-	timestring := fmt.Sprintf("%v %v:00", on, at)
-
-	//seconds := (hours / 3600) + (minutes / 60)
-	timeIn, err := time.Parse("2006-01-02 15:04:05", timestring)
+	jsonTime, err := tools.GetFixedJsonTime(on, at)
 	if err != nil {
 		return entities.Event{}, err
 	}
-
-	jsonTime := timeIn.In(time.Local).Format(time.RFC3339)
 
 	return entities.Event {
 		ID: xid.New().String(),
