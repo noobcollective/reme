@@ -55,8 +55,11 @@ func updateData(data *entities.Events, chanError chan error) {
 		chanError <- err
 	}
 
-	if ( (len(data.Events) == len(newData.Events)) ||
-		(len(data.Events) == 0 || len(newData.Events) == 0) ) {
+	if len(data.Events) == len(newData.Events) {
+		return
+	}
+
+	if len(data.Events) == 0 || len(newData.Events) == 0 {
 		return
 	}
 
@@ -67,7 +70,7 @@ func updateData(data *entities.Events, chanError chan error) {
 // Checks if the diff from now to the event time is between +/- 5 seconds.
 // If so, notify listeners and mark event as passed.
 func checkIfNow(event *entities.Event, chanError chan error) {
-	if ( event.AlreadyDispatched ) {
+	if event.AlreadyDispatched {
 		return
 	}
 
@@ -77,12 +80,13 @@ func checkIfNow(event *entities.Event, chanError chan error) {
 	}
 
 	// Event is out of threshold
-	if ( !time.Now().After( eventTime ) ) {
+	if !time.Now().After(eventTime) {
 		return
 	}
 
 	event.AlreadyDispatched = true
-	if err := beeep.Notify( "REME Notification", fmt.Sprintf("Reme: %s", event.Subject), "" ); err != nil {
+	appIconPath := "assets/nc_logo.jpeg"
+	if err := beeep.Notify("REME Notification", fmt.Sprintf("%s", event.Subject), appIconPath); err != nil {
 		chanError <- err
 	}
 	

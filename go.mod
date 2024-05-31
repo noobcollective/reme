@@ -4,7 +4,6 @@ go 1.22.2
 
 require (
 	github.com/charmbracelet/huh v0.4.2
-	github.com/charmbracelet/huh/spinner v0.0.0-20240529143420-2ae64435bd5d
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/gen2brain/beeep v0.0.0-20240112042604-c7bb2cd88fea
 	github.com/rs/xid v1.5.0

@@ -1,29 +1,27 @@
 package views
 
 import (
+	"errors"
 	"fmt"
+	"strconv"
+	reg "regexp"
+
 	"reme/controllers"
 	"reme/entities"
 	"reme/tools"
-	"strconv"
-	"errors"
 
 	"github.com/charmbracelet/huh"
 	"github.com/rs/xid"
 )
 
-// Basics
-var (
-    eventType string
-	subject   string
-	jsonTime  string
-)
 
-
-func RunForms() error {
+// Runs the form an creates the event.
+func RunForm() error {
 	var err error
+	var subject, jsonTime  string
+
 	// Get basic infos
-	if err = runBasicsForm(); err != nil {
+	if err = runForm(&subject, &jsonTime); err != nil {
 		if err == huh.ErrUserAborted {
 			return nil
 		}
@@ -31,102 +29,68 @@ func RunForms() error {
 		return err
 	}
 
-	switch(eventType) {
-		case "timer":
-			err = runTimerForm()
-	
-		case "appointment":
-			err = runAppointmentForm()
-		
-		default:
-			return nil
-	}
-
-	if err != nil {
-		if err == huh.ErrUserAborted {
-			return nil
-		}
-
-		return err
-	}
-
-	if err = createEvent(); err != nil {
+	if err = createEvent(subject, jsonTime); err != nil {
         return err
     }
 
 	fmt.Println("Event created 🎉")
-
 	return nil
 }
 
 
-// Runs a huh? form to ask the user for basic event details.
-func runBasicsForm() error {
+// Runs a huh? form to ask the user for event details.
+// Parses a json formatted time from input and assigns it.
+func runForm(subject *string, jsonTime *string) error {
+	var eventType string
+
+	// Create a form with needed input fields.
 	form := huh.NewForm(
 		huh.NewGroup(
-			// Ask what to do.
-			huh.NewSelect[string]().
-				Title("What would you like to do?").
+			// Ask for option to create new event.
+			huh.NewSelect[string]().Title("What would you like to do?").
 				Options(
-				huh.NewOption("Set a timer", "timer"),
-				huh.NewOption("Set an appointment", "appointment"),
-				).
-				Value(&eventType), // store the chosen option in the "burger" variable
+					huh.NewOption("Set a timer", "timer"),
+					huh.NewOption("Set an appointment", "appointment"),
+				).Value(&eventType),
 
-			// Ask for subject.
-			huh.NewInput().Title("Subject").Value(&subject).Validate(validateEmpty),
+			huh.NewInput().Title("Subject").Value(subject).Validate(validateEmpty),
 		),
-	)
 
-	return form.Run()
-}
-
-
-// Runs a huh? form to ask the user for timer dates.
-func runTimerForm() error {
-	var strHours, strMinutes string
-
-	form := huh.NewForm(
+		// Informations for a Timer
 		huh.NewGroup(
-			// Ask for subject.
-			huh.NewInput().Title("Hours").Placeholder("HH").Value(&strHours).Validate(validateEmpty),
-			huh.NewInput().Title("Minutes").Placeholder("MM").Value(&strMinutes).Validate(validateEmpty),
-		),
+			huh.NewInput().Key("hours").Title("Hours").Placeholder("HH").Validate(validateTime),
+
+			huh.NewInput().Key("minutes").Title("Minutes").Placeholder("MM").Validate(validateTime),
+		).WithHideFunc(func() bool { return eventType != "timer" }),
+
+		// Informations for an Appointment
+		huh.NewGroup(
+			huh.NewInput().Key("date").Title("Date").Placeholder("YYYY-MM-DD").Validate(validateDate),
+
+			huh.NewInput().Key("hour").Title("Hour").Placeholder("HH").Validate(validateEmpty),
+
+			huh.NewInput().Key("minute").Title("Minute").Placeholder("MM").Validate(validateEmpty),
+		).WithHideFunc(func() bool { return eventType != "appointment" }),
 	)
 
-	if err := form.Run(); err != nil {
-		return err
-	}
-
-	hours, err := strconv.ParseUint(strHours, 10, 64)
-	minutes, err := strconv.ParseUint(strMinutes, 10, 64)
-	if err != nil {
-		return err
-	}
-
-	jsonTime = tools.GetRelativeJsonTime(hours, minutes)
-
-	return nil
-}
-
-// Runs a huh? form to ask the user for timer dates.
-func runAppointmentForm() error {
 	var err error
-	var eventDate, eventTime string
-
-	form := huh.NewForm(
-		huh.NewGroup(
-			// Ask for subject.
-			huh.NewInput().Title("Date").Placeholder("YYYY-MM-DD").Value(&eventDate).Validate(validateEmpty),
-			huh.NewInput().Title("Time").Placeholder("HH:MM").Value(&eventTime).Validate(validateEmpty),
-		),
-	)
-
 	if err = form.Run(); err != nil {
 		return err
 	}
 
-	jsonTime, err = tools.GetFixedJsonTime(eventDate, eventTime)
+	// Assign jsonTime from given input based on event type.
+	switch (eventType) {
+		case "appointment":
+			timeStr := form.GetString("hour") + ":" + form.GetString("minute")
+			*jsonTime, err = tools.GetFixedJsonTime(form.GetString("date"), timeStr)
+
+		case "timer":
+			var hours, minutes uint64
+			hours, err = strconv.ParseUint(form.GetString("hours"), 10, 64)
+			minutes, err = strconv.ParseUint(form.GetString("minutes"), 10, 64)
+			*jsonTime = tools.GetRelativeJsonTime(hours, minutes)
+	}
+
 	if err != nil {
 		return err
 	}
@@ -136,15 +100,41 @@ func runAppointmentForm() error {
 
 
 func validateEmpty(value string) error {
-	if value != "" {
-		return nil
+	if value == "" {
+		return errors.New("Please set a value for this field.")
 	}
 
-	return errors.New("Please set a value for this field.")
+	return nil
 }
 
 
-func createEvent() error {
+func validateDate(value string) error {
+	if err := validateEmpty(value); err != nil {
+        return err
+    }
+
+	if match, _ := reg.MatchString(`\d{4}-\d{1,2}-\d{1,2}`, value); !match {
+		return errors.New("Please provide date in the format of `YYYY-MM-DD`.")
+	}
+
+	return nil
+}
+
+
+func validateTime(value string) error {
+	if err := validateEmpty(value); err != nil {
+        return err
+    }
+
+	if match, _ := reg.MatchString(`\d{1,2}`, value); !match {
+		return errors.New("Please provide time in the format of `dd`.")
+	}
+
+	return nil
+}
+
+
+func createEvent(subject string, jsonTime string) error {
 	newEvent := entities.Event{
 		ID: xid.New().String(),
 		Time: jsonTime,

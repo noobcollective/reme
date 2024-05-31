@@ -29,7 +29,7 @@ func main() {
 		return
 	}
 
-	if err := views.RunForms(); err != nil {
+	if err := views.RunForm(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error creating events: <%v>\n", err)
 	}
 }
