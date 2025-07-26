@@ -85,7 +85,7 @@ func checkIfNow(event *entities.Event, chanError chan error) {
 	}
 
 	event.AlreadyDispatched = true
-	appIconPath := "assets/nc_logo.jpeg"
+	appIconPath := "/Users/iculture/Repos/noobcollective/reme/assets/nc_logo.jpeg"
 	if err := beeep.Notify("REME Notification", fmt.Sprintf("%s", event.Subject), appIconPath); err != nil {
 		chanError <- err
 	}
