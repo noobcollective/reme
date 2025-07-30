@@ -1,7 +1,3 @@
-checksum:
-  name_template: "{{ .ArtifactName }}.{{ .Algorithm }}"
-  algorithm: sha256
-  split: true
 builds:
   - env:
     - CGO_ENABLED=0
