@@ -1,0 +1,8 @@
+[Unit]
+Description=Reme
+
+[Service]
+ExecStart=/usr/bin/reme -daemon
+
+[Install]
+WantedBy=multi-user.target
